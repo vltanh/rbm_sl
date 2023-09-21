@@ -38,7 +38,6 @@ def energy_rbm(W, y, x):
     h = x[n_v:, :]
 
     # Compute A * x (Ax)
-    print(W.shape, v.shape, h.shape)
     Av = torch.matmul(W.T, v)  # [n_h, 2^n]
     Ah = torch.matmul(W, h)  # [n_v, 2^n]
     Ax = torch.cat((Ah, Av), dim=0) / 2  # [n, 2^n]
