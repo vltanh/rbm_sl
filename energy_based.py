@@ -52,6 +52,23 @@ def energy_rbm(W, y, x):
     return - xAx - xy  # [B, 2^n]
 
 
+def partition(A, y, x, energy_fn=energy):
+    '''
+    Compute the partition
+
+    Args:
+        A: [n, n]
+        y: [B, n]
+        x: [n, 2^n]
+
+    Returns:
+        distribution: [B, 2^n]
+    '''
+    E = -energy_fn(A, y, x)  # [B, 2^n]
+    log_partition = torch.logsumexp(E, 1)  # [B, ]
+    return log_partition  # [B, 2^n]
+
+
 def distribution(A, y, x, energy_fn=energy):
     '''
     Compute the distribution
