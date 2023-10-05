@@ -206,7 +206,7 @@ def marginals_factorgraph(W, y):
 
         return m
 
-    m = torch.zeros(y.size(0), 2, n)
+    m = torch.zeros(y.size(0), values.size(0), n)
     for i in range(n_v):
         m[:, :, i] = compute_logmarginal_v(i)
 
@@ -224,7 +224,7 @@ def barycenter_factorgraph(W, y):
 
 
 # Set dimensions
-n_v, n_h = 11, 11
+n_v, n_h = 5, 5
 n = n_v + n_h
 B = 512
 
