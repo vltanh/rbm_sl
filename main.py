@@ -9,7 +9,7 @@ from energy_based import energy_rbm, barycenter
 # Set seed to be consistent
 torch.manual_seed(0)
 
-DEBUG = False
+DEBUG = True
 
 
 def visualize_factorgraph(W, y):
@@ -52,135 +52,138 @@ def marginals_factorgraph(W, y):
 
     messages = dict()
 
-    def compute_message_fv2v(idx, v):
+    def compute_message_fv2v(i_v, v):
         if DEBUG:
-            _id = f'f^v_{idx} -> v_{idx} ({v})'
+            _id = f'f^v_{i_v} -> v_{i_v} ({v})'
 
-        if (('fv2v', idx), idx, v) not in messages:
+        if ('fv2v', i_v, v) not in messages:
             if DEBUG:
                 print(f'[COMPUTE] {_id}')
 
-            messages[(('fv2v', idx), idx, v)] = y[:, [idx]] * v
+            messages[('fv2v', i_v, v)] = y[:, [i_v]] * v
         else:
             if DEBUG:
                 print(f'[CACHE] {_id}')
 
-        return messages[(('fv2v', idx), idx, v)]
+        return messages[('fv2v', i_v, v)]
 
-    def compute_message_fh2h(idx, h):
+    def compute_message_fh2h(i_h, h):
         if DEBUG:
-            _id = f'f^h_{idx} -> h_{idx} ({h})'
+            _id = f'f^h_{i_h} -> h_{i_h} ({h})'
 
-        if (('fh2h', idx), idx, h) not in messages:
+        if ('fh2h', i_h, h) not in messages:
             if DEBUG:
                 print(f'[COMPUTE] {_id}')
 
-            messages[(('fh2h', idx), idx, h)] = y[:, [n_v + idx]] * h
+            messages[('fh2h', i_h, h)] = y[:, [n_v + i_h]] * h
         else:
             if DEBUG:
                 print(f'[CACHE] {_id}')
 
-        return messages[(('fh2h', idx), idx, h)]
+        return messages[('fh2h', i_h, h)]
 
-    def compute_message_f2v(src, dst, v):
+    def compute_message_f2v(i_v, i_h, v):
         if DEBUG:
-            _id = f'f_{{{src[0]},{src[1]}}} -> v_{dst} ({v})'
+            _id = f'f_{{{i_v},{i_h}}} -> v_{i_v} ({v})'
 
-        if ('f2v', src, dst, v) not in messages:
+        if ('f2v', i_v, i_h, v) not in messages:
             if DEBUG:
                 print(f'[COMPUTE] {_id}')
 
-            i, j = src
-            messages[('f2v', src, dst, v)] = torch.logsumexp(torch.hstack([
-                W[i, j] * v * 1. + compute_message_h2f(j, src, 1.),
-                W[i, j] * v * (-1.) + compute_message_h2f(j, src, -1.)
+            messages[('f2v', i_v, i_h, v)] = torch.logsumexp(torch.hstack([
+                W[i_v, i_h] * v * 1. + compute_message_h2f(i_v, i_h, 1.),
+                W[i_v, i_h] * v * (-1.) + compute_message_h2f(i_v, i_h, -1.)
             ]), dim=1, keepdim=True)
         else:
             if DEBUG:
                 print(f'[CACHE] {_id}')
 
-        return messages[('f2v', src, dst, v)]
+        return messages[('f2v', i_v, i_h, v)]
 
-    def compute_message_f2h(src, dst, h):
+    def compute_message_f2h(i_v, i_h, h):
         if DEBUG:
-            _id = f'f_{{{src[0]},{src[1]}}} -> h_{dst} ({h})'
+            _id = f'f_{{{i_v},{i_h}}} -> h_{i_h} ({h})'
 
-        if ('f2h', src, dst, h) not in messages:
+        if ('f2h', i_v, i_h, h) not in messages:
             if DEBUG:
                 print(f'[COMPUTE] {_id}')
 
-            i, j = src
-            messages[('f2h', src, dst, h)] = torch.logsumexp(torch.hstack([
-                W[i, j] * h * 1. + compute_message_v2f(i, src, 1.),
-                W[i, j] * h * (-1.) + compute_message_v2f(i, src, -1.)
+            messages[('f2h', i_v, i_h, h)] = torch.logsumexp(torch.hstack([
+                W[i_v, i_h] * h * 1. + compute_message_v2f(i_v, i_h, 1.),
+                W[i_v, i_h] * h * (-1.) + compute_message_v2f(i_v, i_h, -1.)
             ]), dim=1, keepdim=True)
         else:
             if DEBUG:
                 print(f'[CACHE] {_id}')
 
-        return messages[('f2h', src, dst, h)]
+        return messages[('f2h', i_v, i_h, h)]
 
-    def compute_message_h2f(src, dst, h):
+    def compute_message_h2f(i_v, i_h, h):
         if DEBUG:
-            _id = f'h_{src} -> f_{{{dst[0]},{dst[1]}}} ({h})'
+            _id = f'h_{i_h} -> f_{{{i_v},{i_h}}} ({h})'
 
-        if ('h2f', src, dst) not in messages:
+        if ('h2f', i_v, i_h, h) not in messages:
             if DEBUG:
                 print(f'[COMPUTE] {_id}')
 
-            messages[('h2f', src, dst, h)] = \
-                compute_message_fh2h(src, h).clone()
+            messages[('h2f', i_v, i_h, h)] = \
+                compute_message_fh2h(i_h, h).clone()
 
             for i in range(n_v):
-                if (i, src) != dst and W[i, src] != 0:
-                    messages[('h2f', src, dst, h)] += \
-                        compute_message_f2h((i, src), src, h).clone()
+                if i != i_v and W[i, i_h] != 0:
+                    messages[('h2f', i_v, i_h, h)] += \
+                        compute_message_f2h(i, i_h, h).clone()
         else:
             if DEBUG:
                 print(f'[CACHE] {_id}')
 
-        return messages[('h2f', src, dst, h)]
+        return messages[('h2f', i_v, i_h, h)]
 
-    def compute_message_v2f(src, dst, v):
+    def compute_message_v2f(i_v, i_h, v):
         if DEBUG:
-            _id = f'v_{src} -> f_{{{dst[0]},{dst[1]}}} ({v})'
+            _id = f'v_{i_v} -> f_{{{i_v},{i_h}}} ({v})'
 
-        if ('v2f', src, dst, v) not in messages:
+        if ('v2f', i_v, i_h, v) not in messages:
             if DEBUG:
                 print(f'[COMPUTE] {_id}')
 
-            messages[('v2f', src, dst, v)] = \
-                compute_message_fv2v(src, v).clone()
+            messages[('v2f', i_v, i_h, v)] = \
+                compute_message_fv2v(i_v, v).clone()
+
             for j in range(n_h):
-                if (src, j) != dst and W[src, j] != 0:
-                    messages[('v2f', src, dst, v)] += \
-                        compute_message_f2v((src, j), src, v).clone()
+                if j != i_h and W[i_v, j] != 0:
+                    messages[('v2f', i_v, i_h, v)] += \
+                        compute_message_f2v(i_v, j, v).clone()
         else:
             if DEBUG:
                 print(f'[CACHE] {_id}')
-                
-        return messages[('v2f', src, dst, v)]
 
-    def compute_logmarginal_v(idx, v):
+        return messages[('v2f', i_v, i_h, v)]
+
+    def compute_logmarginal_v(i_v, v):
         if DEBUG:
-            _id = f'v_{idx} ({v})'
+            _id = f'v_{i_v} ({v})'
             print(f'[COMPUTE] {_id}')
 
-        m = compute_message_fv2v(idx, v).clone()
+        m = compute_message_fv2v(i_v, v).clone()
+
         for j in range(n_h):
-            if W[idx, j] != 0:
-                m += compute_message_f2v((idx, j), idx, v).clone()
+            if W[i_v, j] != 0:
+                m += compute_message_f2v(i_v, j, v).clone()
+
         return m
 
-    def compute_logmarginal_h(idx, h):
+    def compute_logmarginal_h(i_h, h):
         if DEBUG:
-            _id = f'h_{idx} ({h})'
+            _id = f'h_{i_h} ({h})'
             print(f'[COMPUTE] {_id}')
 
-        m = compute_message_fh2h(idx, h).clone()
+        m = compute_message_fh2h(i_h, h).clone()
+
         for i in range(n_v):
-            if W[i, idx] != 0:
-                m += compute_message_f2h((i, idx), idx, h).clone()
+            if W[i, i_h] != 0:
+                m += compute_message_f2h(i, i_h, h).clone()
+
         return m
 
     m = torch.zeros(y.size(0), 2, n)
@@ -205,7 +208,7 @@ def barycenter_factorgraph(W, y):
 # Set dimensions
 n_v, n_h = 2, 3
 n = n_v + n_h
-B = 10
+B = 2
 
 # Generate random tree-structured RBM
 W = torch.randn(n_v, n_h)
