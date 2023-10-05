@@ -11,6 +11,7 @@ torch.manual_seed(3698)
 
 DEBUG = False
 CUDA = False
+BRUTE_FORCE = True
 
 
 def visualize_factorgraph(W, y):
@@ -330,31 +331,43 @@ n_v, n_h = 4, 3
 n = n_v + n_h
 B = 1024
 
+if n >= 25:
+    BRUTE_FORCE = False
+
 # Generate random tree-structured RBM
 W = torch.randn(n_v, n_h)
 # W = torch.ones(n_v, n_h)
-W[1:, :-1] = 0.
+W[:-1, 1:] = 0.
 
 y = torch.randn(B, n)  # assume to be (n_v, n_h)
 # y = torch.ones(2, n)
 
-# print('W\n', W)
-# print('y\n', y)
-
-# Generate all configurations
-x = load_configurations(n)  # [n, 2^n]
-
-# Compute the barycenter through brute force
-m = barycenter(W, y, x, energy_fn=energy_rbm)
-marginals = (m + 1) / 2
-
-# print('Marginals\n', marginals)
-# print('Barycenter (brute-force)\n', m)
+if DEBUG:
+    print('W\n', W)
+    print('y\n', y)
 
 start = time.time()
-m_ = barycenter_factorgraph(W, y)
+m_factorgraph = barycenter_factorgraph(W, y)
 elapsed = time.time() - start
-
-# print('Barycenter (factor graph)\n', m_)
 print('Time:', elapsed)
-print('Error (uniform):', torch.max(torch.abs(m - m_)))
+
+if DEBUG:
+    print('Barycenter (factor graph)\n', m_factorgraph)
+
+if BRUTE_FORCE:
+    # Generate all configurations
+    x = load_configurations(n)  # [n, 2^n]
+
+    # Compute the barycenter through brute force
+    m_bruteforce = barycenter(W, y, x, energy_fn=energy_rbm)
+    marginals = (m_bruteforce + 1) / 2
+
+if DEBUG:
+    print('Marginals\n', marginals)
+    print('Barycenter (brute-force)\n', m_bruteforce)
+
+if BRUTE_FORCE:
+    print(
+        'Error (uniform):',
+        torch.max(torch.abs(m_bruteforce - m_factorgraph))
+    )
