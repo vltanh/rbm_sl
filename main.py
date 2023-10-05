@@ -10,7 +10,7 @@ from energy_based import energy_rbm, barycenter
 torch.manual_seed(3698)
 
 DEBUG = False
-CUDA = True
+CUDA = False
 
 
 def visualize_factorgraph(W, y):
@@ -326,14 +326,14 @@ def barycenter_factorgraph(W, y):
 
 
 # Set dimensions
-n_v, n_h = 10, 10
+n_v, n_h = 4, 3
 n = n_v + n_h
 B = 1024
 
 # Generate random tree-structured RBM
 W = torch.randn(n_v, n_h)
 # W = torch.ones(n_v, n_h)
-W[1:, 1:] = 0.
+W[1:, :-1] = 0.
 
 y = torch.randn(B, n)  # assume to be (n_v, n_h)
 # y = torch.ones(2, n)
@@ -344,7 +344,7 @@ y = torch.randn(B, n)  # assume to be (n_v, n_h)
 # Generate all configurations
 x = load_configurations(n)  # [n, 2^n]
 
-# # Compute the barycenter through brute force
+# Compute the barycenter through brute force
 m = barycenter(W, y, x, energy_fn=energy_rbm)
 marginals = (m + 1) / 2
 
