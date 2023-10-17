@@ -1,7 +1,5 @@
 import torch
 
-from configurations import load_configurations
-
 
 def energy(A, y, x):
     '''
