@@ -25,7 +25,7 @@ if n > 20:
 # Generate random tree-structured RBM
 W = torch.randn(n_v, n_h).type(DEFAULT_TYPE)
 # W = torch.ones(n_v, n_h)
-W[:-1, 1:] = 0.
+W[1:, 1:] = 0.
 
 # y = torch.randn(B, n)  # assume to be (n_v, n_h)
 y = torch.zeros(B, n)

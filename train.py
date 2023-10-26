@@ -113,4 +113,3 @@ model = train(model, train_loader, n_epochs=n_epochs, lr=lr)
 
 # Save the model
 torch.save(rbm.state_dict(), 'model.pt')
-
