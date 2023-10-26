@@ -2,9 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import networkx as nx
 
-DEBUG = False
-CUDA = False
-BRUTE_FORCE = True
+from constant import CUDA, DEBUG, DEFAULT_TYPE
 
 
 class TreeRBMFactorGraph:
@@ -23,7 +21,7 @@ class TreeRBMFactorGraph:
             y: [B, n]
         '''
         self.W, self.y = W, y
-        self.values = torch.FloatTensor([1.0, -1.0])
+        self.values = torch.FloatTensor([1.0, -1.0]).type(DEFAULT_TYPE)
         self.reset()
 
         self.n_v, self.n_h = W.shape
@@ -117,13 +115,16 @@ class TreeRBMFactorGraph:
             m: [B, n]
         '''
         if CUDA:
-            W = W.cuda()
-            y = y.cuda()
+            self.W = self.W.cuda()
+            self.y = self.y.cuda()
             self.values = self.values.cuda()
+
+        # Reset the messages
+        self.reset()
 
         # Store the marginals
         m = torch.zeros(self.B, self.values.size(0), self.n)  # [B, 2, n]
-        
+
         for i in range(self.n_v):
             m[:, :, i] = \
                 self.compute_logmarginal_v(i)  # [B, 2] -> [B, 2, n]

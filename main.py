@@ -1,17 +1,12 @@
 import torch
 import time
 
-from configurations import load_configurations
-from energy_based import energy_rbm, barycenter
+from brute_force import barycenter_bf
+from energy_based import energy_rbm
 
 from factor_graph import TreeRBMFactorGraph
 
-DEFAULT_TYPE = torch.float64
-SEED = 0
-
-DEBUG = False
-CUDA = False
-BRUTE_FORCE = True
+from constant import DEFAULT_TYPE, SEED, DEBUG, BRUTE_FORCE
 
 # Set default float precision
 torch.set_default_dtype(DEFAULT_TYPE)
@@ -28,12 +23,12 @@ if n > 20:
     BRUTE_FORCE = False
 
 # Generate random tree-structured RBM
-W = torch.randn(n_v, n_h)
+W = torch.randn(n_v, n_h).type(DEFAULT_TYPE)
 # W = torch.ones(n_v, n_h)
 W[:-1, 1:] = 0.
 
-y = torch.randn(B, n)  # assume to be (n_v, n_h)
-# y = torch.ones(2, n)
+# y = torch.randn(B, n)  # assume to be (n_v, n_h)
+y = torch.zeros(B, n)
 
 if DEBUG:
     print('W\n', W)
@@ -51,18 +46,14 @@ if DEBUG:
     print('Barycenter (factor graph)\n', m_factorgraph)
 
 if BRUTE_FORCE:
-    # Generate all configurations
-    x = load_configurations(n).type(DEFAULT_TYPE)  # [n, 2^n]
-
     # Compute the barycenter through brute force
-    m_bruteforce = barycenter(W, y, x, energy_fn=energy_rbm)
+    m_bruteforce = barycenter_bf(W, y, energy_fn=energy_rbm)
     marginals = (m_bruteforce + 1) / 2
 
-if DEBUG:
-    print('Marginals\n', marginals)
-    print('Barycenter (brute-force)\n', m_bruteforce)
+    if DEBUG:
+        print('Marginals\n', marginals)
+        print('Barycenter (brute-force)\n', m_bruteforce)
 
-if BRUTE_FORCE:
     print(
         'Error (uniform):',
         torch.max(torch.abs(m_bruteforce - m_factorgraph))

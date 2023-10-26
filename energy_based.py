@@ -4,100 +4,88 @@ import torch
 def energy(A, y, x):
     '''
     Compute the energy of a SK
+        E(x; A, y) = - <x, Ax> - <x, y>
 
     Args:
         A: [n, n]
-        y: [B, n]
-        x: [n, 2^n]
+        y: [B_y, n]
+        x: [n, B_x]
 
     Returns:
-        energy: [B, 2^n]
+        energy: [B_y, B_x]
     '''
-    xAx = torch.sum(torch.matmul(A.T, x) * x, dim=0)  # [2^n, ]
-    xy = torch.matmul(y, x)  # [B, 2^n]
-    return - xAx - xy  # [B, 2^n]
+    xAx = torch.sum(torch.matmul(A.T, x) * x, dim=0)  # [B_x, ]
+    xy = torch.matmul(y, x)  # [B_y, B_x]
+    return - xAx - xy  # [B_y, B_x]
 
 
 def energy_rbm(W, y, x):
     '''
     Compute the energy of a RBM
+        x = (v, h)
+        E(x; W, y) = - 1/2 <v, Wh> - <x, y>
 
     Args:
         W: [n_v, n_h]
-        y: [B, n]
-        x: [n, 2^n]
+        y: [B_y, n]
+        x: [n_v + n_h, B_x]
 
     Returns:
-        energy: [B, 2^n]
+        energy: [B_y, B_x]
     '''
     # Split x into v and h
     n_v, n_h = W.shape
-    v = x[:n_v, :]
-    h = x[n_v:, :]
+    v = x[:n_v, :]  # [n_v, B_x]
+    h = x[n_v:, :]  # [n_h, B_x]
 
     # Compute A * x (Ax)
-    Av = torch.matmul(W.T, v)  # [n_h, 2^n]
-    Ah = torch.matmul(W, h)  # [n_v, 2^n]
-    Ax = torch.cat((Ah, Av), dim=0) / 2  # [n, 2^n]
+    Av = torch.matmul(W.T, v)  # [n_h, B_x]
+    Ah = torch.matmul(W, h)  # [n_v, B_x]
+    Ax = torch.cat((Ah, Av), dim=0) / 2  # [n, B_x]
 
     # Compute dot(x, Ax)
-    xAx = torch.sum(x * Ax, dim=0)  # [2^n, ]
+    xAx = torch.sum(x * Ax, dim=0)  # [B_x, ]
 
     # Compute dot(x, y)
-    xy = torch.matmul(y, x)  # [B, 2^n]
+    xy = torch.matmul(y, x)  # [B_y, B_x]
 
     # Return the sum
-    return - xAx - xy  # [B, 2^n]
+    return - xAx - xy  # [B_y, B_x]
 
 
-def partition(A, y, x, energy_fn=energy):
+def partition(A, y, x, energy_fn):
     '''
     Compute the partition
 
     Args:
         A: [n, n]
-        y: [B, n]
-        x: [n, 2^n]
+        y: [B_y, n]
+        x: [n, B_x]
 
     Returns:
-        distribution: [B, 2^n]
+        distribution: [B_y, B_x]
     '''
-    E = -energy_fn(A, y, x)  # [B, 2^n]
-    log_partition = torch.logsumexp(E, 1)  # [B, ]
-    return log_partition  # [B, 2^n]
+    E = -energy_fn(A, y, x)  # [B_y, B_x]
+    log_partition = torch.logsumexp(E, 1)  # [B_y, ]
+    return log_partition  # [B_y, B_x]
 
 
-def distribution(A, y, x, energy_fn=energy):
+def distribution(A, y, x, energy_fn):
     '''
-    Compute the distribution
+    Compute the distribution 
+        p(x) = \exp(-E(x)) / Z
+    where 
+        Z = \sum_x \exp(-E(x))
 
     Args:
         A: [n, n]
-        y: [B, n]
-        x: [n, 2^n]
+        y: [B_y, n]
+        x: [n, B_x]
 
     Returns:
-        distribution: [B, 2^n]
+        distribution: [B_y, B_x]
     '''
-    E = -energy_fn(A, y, x)  # [B, 2^n]
-    log_partition = torch.logsumexp(E, 1)  # [B, ]
-    distribution = torch.exp(E - log_partition.unsqueeze(1))  # [B, 2^n]
-    return distribution  # [B, 2^n]
-
-
-def barycenter(A, y, x, energy_fn=energy):
-    '''
-    Compute the barycenter of a tilted SK
-
-    Args:
-        A: [n, n]
-        y: [B, n]
-        x: [n, 2^n]
-        energy_fn: energy function
-
-    Returns:
-        barycenter: [B, n]
-    '''
-    p = distribution(A, y, x, energy_fn)  # [B, 2^n]
-    barycenter = torch.matmul(p, x.transpose(0, 1))
-    return barycenter
+    E = -energy_fn(A, y, x)  # [B_y, B_x]
+    log_Z = torch.logsumexp(E, 1)  # [B_y, ]
+    p = torch.exp(E - log_Z.unsqueeze(1))  # [B_y, B_x]
+    return p  # [B_y, B_x]
