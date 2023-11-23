@@ -10,8 +10,8 @@ from configurations import load_configurations
 from constant import DEFAULT_TYPE
 
 # Hyperparameters
-n_v = 2
-n_h = 4
+n_v = 4
+n_h = 2
 n = n_v + n_h
 
 delta = .1  # Step size
@@ -19,9 +19,19 @@ L = 100  # Number of steps each sample
 N = 1000000  # Number of samples
 
 # Generate random tree-structured RBM
-W = torch.randn(n_v, n_h).type(DEFAULT_TYPE)
+W = torch.randn(n_h, n_v).type(DEFAULT_TYPE)
 # W = torch.ones(n_v, n_h)
-W[:-1, 1:] = 0.
+# W[1:, 1:] = 0.
+if n_v % n_h == 0:
+    k = n_v // n_h
+    for i in range(n_h):
+        W[i, : i * k] = 0.
+        W[i, (i + 1) * k:] = 0.
+elif n_h % n_v == 0:
+    k = n_h // n_v
+    for i in range(n_v):
+        W[: i * k, i] = 0.
+        W[(i + 1) * k:, i] = 0.
 
 # Generate samples
 samples = stochasic_localization_rbm(W, L, delta, N, store_history=False)

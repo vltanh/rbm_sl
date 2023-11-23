@@ -6,7 +6,9 @@ from energy_based import energy_rbm
 
 from factor_graph import TreeRBMFactorGraph
 
-from constant import DEFAULT_TYPE, SEED, DEBUG, BRUTE_FORCE
+from constant import DEFAULT_TYPE, SEED, DEBUG
+
+BRUTE_FORCE = True
 
 # Set default float precision
 torch.set_default_dtype(DEFAULT_TYPE)
@@ -15,7 +17,7 @@ torch.set_default_dtype(DEFAULT_TYPE)
 torch.manual_seed(SEED)
 
 # Set dimensions
-n_v, n_h = 4, 8
+n_v, n_h = 4, 2
 n = n_v + n_h
 B = 1024
 
@@ -23,9 +25,19 @@ if n > 20:
     BRUTE_FORCE = False
 
 # Generate random tree-structured RBM
-W = torch.randn(n_v, n_h).type(DEFAULT_TYPE)
+W = torch.randn(n_h, n_v).type(DEFAULT_TYPE)
 # W = torch.ones(n_v, n_h)
-W[1:, 1:] = 0.
+# W[1:, 1:] = 0.
+if n_v % n_h == 0:
+    k = n_v // n_h
+    for i in range(n_h):
+        W[i, : i * k] = 0.
+        W[i, (i + 1) * k:] = 0.
+elif n_h % n_v == 0:
+    k = n_h // n_v
+    for i in range(n_v):
+        W[: i * k, i] = 0.
+        W[(i + 1) * k:, i] = 0.
 
 # y = torch.randn(B, n)  # assume to be (n_v, n_h)
 y = torch.zeros(B, n)

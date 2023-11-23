@@ -15,7 +15,7 @@ from generate_data import load_data
 from rbm import TreeRBM, RBM
 from sl import StochasticLocalization
 
-from constant import DEFAULT_TYPE, SEED, TREE
+from constant import DEFAULT_TYPE, SEED, TREE_MODEL, TREE_DATA, ALGO
 
 torch.set_default_dtype(DEFAULT_TYPE)
 
@@ -66,7 +66,7 @@ def train(model, train_loader, n_epochs=20, lr=0.01, true_dist=None, writer=None
             loss_.append(loss.item())
             train_op.zero_grad()
             loss.backward()
-            if TREE:
+            if TREE_MODEL:
                 model.rbm.mask_grad()
             train_op.step()
 
@@ -83,26 +83,38 @@ def train(model, train_loader, n_epochs=20, lr=0.01, true_dist=None, writer=None
 
 timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
 outdir = f'logs/{timestamp}'
+if TREE_DATA:
+    outdir += '_treedata'
+else:
+    outdir += '_fulldata'
+if TREE_MODEL:
+    outdir += '_treemodel'
+else:
+    outdir += '_fullmodel'
+outdir += f'_{ALGO}'
 writer = SummaryWriter(outdir)
 
-n_v, n_h = 2, 4
+n_v, n_h = 4, 2
 n = n_v + n_h
 
 N = 1000000
 
 set_seed(SEED + 0)
-if TREE:
+if TREE_MODEL:
     rbm = TreeRBM(n_v, n_h)
 else:
     rbm = RBM(n_v, n_h)
-# model = ContrastiveDivergence(rbm, k=1)
-model = StochasticLocalization(rbm, L=25, delta=.1)
+
+if ALGO == 'cd':
+    model = ContrastiveDivergence(rbm, k=1)
+elif ALGO == 'sl':
+    model = StochasticLocalization(rbm, L=10, delta=1.)
+else:
+    raise NotImplementedError
 
 set_seed(SEED + 1)
 dataset = load_data(n_v, n_h, N)
 loader = DataLoader(dataset, batch_size=1000, shuffle=True)
-
-x = load_configurations(n)
 
 true_W = dataset.true_W.type(DEFAULT_TYPE)
 y = torch.zeros(1, n).type(DEFAULT_TYPE)
@@ -110,5 +122,7 @@ true_dist = marginal_rbm_bf(true_W, y)[0]
 print('True:', true_dist)
 
 set_seed(SEED + 2)
-train(model, loader, n_epochs=25, lr=0.00001,
+train(model, loader, n_epochs=30, lr=0.00005,
       true_dist=true_dist, writer=writer)
+torch.save(model.state_dict(), f'{outdir}/model.pt')
+writer.close()
