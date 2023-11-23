@@ -17,14 +17,14 @@ class TreeRBMFactorGraph:
             B: batch size
 
         Args:
-            W: [n_v, n_h]
+            W: [n_h, n_v]
             y: [B, n]
         '''
-        self.W, self.y = W, y
+        self.W, self.y = W.T, y
         self.values = torch.FloatTensor([1.0, -1.0]).type(DEFAULT_TYPE)
         self.reset()
 
-        self.n_v, self.n_h = W.shape
+        self.n_v, self.n_h = self.W.shape
         self.B, self.n = y.shape
         assert self.n == self.n_v + self.n_h
 
