@@ -27,33 +27,34 @@ W[:-1, 1:] = 0.
 samples = stochasic_localization_rbm(W, L, delta, N, store_history=False)
 
 # Check marginals
-samples_marginals = torch.mean(samples, dim=0)
+samples_marginals = (torch.mean(samples, dim=0) + 1) / 2
 print('Marginals (samples)\n', samples_marginals)
 
-# Generate all configurations
-x = load_configurations(n).type(DEFAULT_TYPE)  # [n, 2^n]
+if n <= 10:
+    # Generate all configurations
+    x = load_configurations(n).type(DEFAULT_TYPE)  # [n, 2^n]
 
-# Dummy tilting variable
-y = torch.zeros(1, n).type(DEFAULT_TYPE)
+    # Dummy tilting variable
+    y = torch.zeros(1, n).type(DEFAULT_TYPE)
 
-# Compute the true distribution
-p = distribution(W, y, x, energy_fn=energy_rbm)[0]
+    # Compute the true distribution
+    p = distribution(W, y, x, energy_fn=energy_rbm)[0]
 
-# Compute the sampled distribution
-t = np.argmin(pairwise_distances(x.T, samples), 0)
-phat = np.zeros_like(p)
-for i in range(len(phat)):
-    phat[i] = np.sum(t == i)
-phat /= N
+    # Compute the sampled distribution
+    t = np.argmin(pairwise_distances(x.T, samples), 0)
+    phat = np.zeros_like(p)
+    for i in range(len(phat)):
+        phat[i] = np.sum(t == i)
+    phat /= N
 
-# Compare
-print('Error:', torch.max(torch.abs(p - phat)).item())
+    # Compare
+    print('Error:', torch.max(torch.abs(p - phat)).item())
 
-# Plot the distributions
-plt.bar(range(len(p)), p, alpha=0.5, label='True')
-plt.bar(range(len(p)), phat, alpha=0.7, label='Sample')
-plt.xticks(fontsize=20)
-plt.yticks(fontsize=20)
-plt.tight_layout()
-plt.legend(loc='upper right', fontsize=20)
-plt.show()
+    # Plot the distributions
+    plt.bar(range(len(p)), p, alpha=0.5, label='True')
+    plt.bar(range(len(p)), phat, alpha=0.7, label='Sample')
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.tight_layout()
+    plt.legend(loc='upper right', fontsize=20)
+    plt.show()
