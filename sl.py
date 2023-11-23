@@ -3,15 +3,15 @@ import torch
 from torch import nn
 from tqdm import tqdm
 
-from constant import DEFAULT_TYPE
+from constant import DEFAULT_TYPE, TREE
 
 from energy_based import energy_rbm
 from brute_force import barycenter_bf
 from factor_graph import TreeRBMFactorGraph
 
 
-def barycenter(W, y, sl=True):
-    if sl:
+def barycenter(W, y):
+    if TREE:
         return TreeRBMFactorGraph(W, y).barycenter()
     else:
         return barycenter_bf(W, y, energy_fn=energy_rbm)
