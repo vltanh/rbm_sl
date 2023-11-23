@@ -26,7 +26,7 @@ def energy_rbm(W, y, x):
         E(x; W, y) = - 1/2 <v, Wh> - <x, y>
 
     Args:
-        W: [n_v, n_h]
+        W: [n_h, n_v]
         y: [B_y, n]
         x: [n_v + n_h, B_x]
 
@@ -34,13 +34,13 @@ def energy_rbm(W, y, x):
         energy: [B_y, B_x]
     '''
     # Split x into v and h
-    n_v, n_h = W.shape
+    n_h, n_v = W.shape
     v = x[:n_v, :]  # [n_v, B_x]
     h = x[n_v:, :]  # [n_h, B_x]
 
     # Compute A * x (Ax)
-    Av = torch.matmul(W.T, v)  # [n_h, B_x]
-    Ah = torch.matmul(W, h)  # [n_v, B_x]
+    Av = torch.matmul(W, v)  # [n_h, B_x]
+    Ah = torch.matmul(W.T, h)  # [n_v, B_x]
     Ax = torch.cat((Ah, Av), dim=0) / 2  # [n, B_x]
 
     # Compute dot(x, Ax)

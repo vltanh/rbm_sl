@@ -11,13 +11,13 @@ def marginal_rbm_bf(W, y):
     Compute the marginal distribution of the visible states
 
     Args:
-        W: [n_v, n_h]
+        W: [n_h, n_v]
         y: [B, n]
 
     Returns:
         p: [B, 2^n_v]
     '''
-    n_v, n_h = W.shape
+    n_h, n_v = W.shape
     n = n_v + n_h
 
     # Generate all configurations
