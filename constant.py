@@ -6,9 +6,10 @@ SEED = 0
 DEBUG = False
 CUDA = False
 
-# BRUTE_FORCE = True
-
-TREE_DATA = True
+TREE_DATA = False
 TREE_MODEL = True
 
-ALGO = 'sl'
+ALGO = 'slfg'
+
+assert not (not TREE_MODEL and ALGO == 'slfg'), \
+    'Cannot use Factor Graph on non-tree model'

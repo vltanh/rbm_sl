@@ -108,7 +108,9 @@ else:
 if ALGO == 'cd':
     model = ContrastiveDivergence(rbm, k=1)
 elif ALGO == 'sl':
-    model = StochasticLocalization(rbm, L=10, delta=1.)
+    model = StochasticLocalization(rbm, L=25, delta=.1)
+elif ALGO == 'slfg':
+    model = StochasticLocalization(rbm, L=10, delta=.1)
 else:
     raise NotImplementedError
 

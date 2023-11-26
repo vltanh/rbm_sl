@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from tqdm import tqdm
 
-from constant import DEFAULT_TYPE, TREE_MODEL
+from constant import DEFAULT_TYPE, ALGO
 
 from energy_based import energy_rbm
 from brute_force import barycenter_bf
@@ -11,10 +11,12 @@ from factor_graph import TreeRBMFactorGraph
 
 
 def barycenter(W, y):
-    if TREE_MODEL:
+    if ALGO == 'slfg':
         return TreeRBMFactorGraph(W, y).barycenter()
-    else:
+    elif ALGO == 'sl':
         return barycenter_bf(W, y, energy_fn=energy_rbm)
+    else:
+        raise NotImplementedError
 
 
 def stochasic_localization_rbm(W, L, delta, B, store_history=True):
