@@ -59,6 +59,6 @@ rbm = TreeRBM(n_v=n_v, n_h=n_h)
 rbm.load_state_dict(torch.load('model.pt'))
 
 model = ContrastiveDivergence(rbm, k=1)
-# model = StochasticLocalization(rbm, L=10, delta=0.1)
+# model = StochasticLocalization(rbm, L=10, delta=1.0)
 
 eval(model)

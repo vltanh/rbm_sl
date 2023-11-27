@@ -1,9 +1,9 @@
 import torch
 
 from constant import DEFAULT_TYPE, SEED
-from brute_force import conditional_v_rbm_bf, conditional_h_rbm_bf
-from sl import sample_h_given_v_sl_rbm, sample_v_given_h_sl_rbm
-from utils import plot_histogram, plot_trajectory
+from src.brute_force import conditional_v_rbm_bf, conditional_h_rbm_bf
+from src.sl import sample_h_given_v_sl_rbm, sample_v_given_h_sl_rbm
+from src.utils import plot_histogram, plot_trajectory
 
 # Set default float precision
 torch.set_default_dtype(DEFAULT_TYPE)

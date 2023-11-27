@@ -10,7 +10,10 @@ from rbm import TreeRBM
 from contrastive_divergence import ContrastiveDivergence
 from sl import StochasticLocalization
 
-SCALE = 1
+from constant import DEFAULT_TYPE, TREE
+
+SIZE = 28
+
 
 def eval(model, epoch):
     # Evaluate the model
@@ -18,17 +21,17 @@ def eval(model, epoch):
 
     # Generate the images
     test_dataset = datasets.MNIST('./data',
-        train=False,
-        transform = transforms.Compose([
-            transforms.ToTensor(), 
-            transforms.Resize((28 // SCALE, 28 // SCALE)),
-            lambda x: 2 * (x > 0).float() - 1
-        ])
-    )
+                                  train=False,
+                                  transform=transforms.Compose([
+                                      transforms.ToTensor(),
+                                      transforms.Resize((SIZE, SIZE)),
+                                      lambda x: 2 * (x > 0).float() - 1
+                                  ])
+                                  )
     vis_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64)
     images = next(iter(vis_loader))[0]
 
-    v = images.view(-1, 784 // (SCALE ** 2))
+    v = images.view(-1, SIZE ** 2)
     v_gibbs = model(v)
 
     v = (v + 1) / 2
@@ -38,7 +41,9 @@ def eval(model, epoch):
     # show_and_save(make_grid(v.view(64, 1, 28, 28).data), f'results/real_{epoch}')
 
     # Show the generated images
-    show_and_save(make_grid(v_gibbs.view(64, 1, 28 // SCALE, 28 // SCALE).data), f'results/fake_{epoch}')
+    show_and_save(make_grid(v_gibbs.view(64, 1, SIZE, SIZE).data),
+                  f'results/fake_{epoch}')
+
 
 def train(model, train_loader, n_epochs=20, lr=0.01):
     """Train a RBM model.
@@ -60,20 +65,23 @@ def train(model, train_loader, n_epochs=20, lr=0.01):
     for epoch in pbar:
         loss_ = []
         for _, (data, _) in enumerate(tqdm(train_loader, leave=False)):
-            v = data.view(-1, 784 // (SCALE ** 2))
-            v_gibbs = model(data.view(-1, 784 // (SCALE ** 2)))
+            v = data.view(-1, SIZE ** 2)
+            v_gibbs = model(data.view(-1, SIZE ** 2))
             loss = model.free_energy(v) - model.free_energy(v_gibbs)
             loss_.append(loss.item())
             train_op.zero_grad()
             loss.backward()
-            model.rbm.mask_grad()
+            if TREE:
+                model.rbm.mask_grad()
             train_op.step()
 
         eval(model, epoch)
 
-        pbar.set_description_str(f'Epoch {epoch:2d} | Loss={np.mean(loss_):.4f}')
+        pbar.set_description_str(
+            f'Epoch {epoch:2d} | Loss={np.mean(loss_):.4f}')
 
     return model
+
 
 def show_and_save(img, file_name):
     """Show and save the image.
@@ -86,23 +94,25 @@ def show_and_save(img, file_name):
     plt.imshow(npimg, cmap='gray')
     plt.imsave(f, npimg)
 
+
 train_dataset = datasets.MNIST('./data',
-    train=True,
-    download = True,
-    transform = transforms.Compose([
-        transforms.ToTensor(), 
-        transforms.Resize((28 // SCALE, 28 // SCALE)),
-        lambda x: 2 * (x > 0).float() - 1
-    ])
-)
+                               train=True,
+                               download=True,
+                               transform=transforms.Compose([
+                                   transforms.ToTensor(),
+                                   transforms.Resize((SIZE, SIZE)),
+                                   lambda x: 2 * (x > 0).float() - 1
+                               ])
+                               )
 
 batch_size = 128
-n_v = 784 // (SCALE ** 2)
-n_h = 784 // (SCALE ** 2)
+n_v = SIZE ** 2
+n_h = 784
 n_epochs = 20
 lr = 0.01
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
+train_loader = torch.utils.data.DataLoader(
+    train_dataset, batch_size=batch_size)
 
 rbm = TreeRBM(n_v=n_v, n_h=n_h)
 model = ContrastiveDivergence(rbm, k=1)

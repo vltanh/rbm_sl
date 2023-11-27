@@ -1,9 +1,9 @@
 import torch
 
 from constant import DEFAULT_TYPE
-from energy_based import energy_rbm
-from energy_based import distribution
-from configurations import load_configurations
+from src.energy_based import energy_rbm
+from src.energy_based import distribution
+from src.configurations import load_configurations
 
 
 def marginal_v_rbm_bf(W, y):

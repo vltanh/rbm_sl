@@ -1,7 +1,7 @@
 import torch
 
 from constant import DEFAULT_TYPE, SEED
-from brute_force import marginal_h_rbm_bf, marginal_v_rbm_bf, \
+from src.brute_force import marginal_h_rbm_bf, marginal_v_rbm_bf, \
     conditional_h_rbm_bf, conditional_v_rbm_bf, \
     barycenter_conditional_h_rbm_bf, barycenter_conditional_v_rbm_bf
 

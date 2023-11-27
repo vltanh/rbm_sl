@@ -5,11 +5,11 @@ from tqdm import tqdm
 
 from constant import DEFAULT_TYPE, ALGO
 
-from energy_based import energy_rbm
-from brute_force import barycenter_bf, \
+from src.energy_based import energy_rbm
+from src.brute_force import barycenter_bf, \
     barycenter_conditional_v_rbm_bf, \
     barycenter_conditional_h_rbm_bf
-from factor_graph import TreeRBMFactorGraph
+from src.factor_graph import TreeRBMFactorGraph
 
 
 def barycenter(W, y):

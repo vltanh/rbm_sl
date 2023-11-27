@@ -8,14 +8,12 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from configurations import load_configurations
-from contrastive_divergence import ContrastiveDivergence
-from brute_force import marginal_rbm_bf
-from generate_data import load_data
-from rbm import TreeRBM, RBM
-from sl import StochasticLocalization
-
 from constant import DEFAULT_TYPE, SEED, TREE_MODEL, TREE_DATA, ALGO
+from src.contrastive_divergence import ContrastiveDivergence
+from src.sl import StochasticLocalization
+from src.brute_force import marginal_v_rbm_bf
+from src.data import load_artificial_data
+from src.rbm import TreeRBM, RBM
 
 torch.set_default_dtype(DEFAULT_TYPE)
 
@@ -46,7 +44,7 @@ def train(model, train_loader, n_epochs=20, lr=0.01, true_dist=None, writer=None
     # test the RBM model initialization
     learned_W = model.rbm.W.detach().type(DEFAULT_TYPE)
     y = torch.zeros(1, n)
-    pred_dist = marginal_rbm_bf(learned_W, y)[0]
+    pred_dist = marginal_v_rbm_bf(learned_W, y)[0]
 
     tv_dist = total_variation_distance(pred_dist, true_dist).detach().item()
     writer.add_scalar('train/TV', tv_dist, 0)
@@ -72,7 +70,7 @@ def train(model, train_loader, n_epochs=20, lr=0.01, true_dist=None, writer=None
 
         with torch.no_grad():
             learned_W = model.rbm.W.detach().type(DEFAULT_TYPE)
-            pred_dist = marginal_rbm_bf(learned_W, y)[0]
+            pred_dist = marginal_v_rbm_bf(learned_W, y)[0]
             tv_dist = \
                 total_variation_distance(pred_dist, true_dist).detach().item()
             writer.add_scalar('train/TV', tv_dist, epoch)
@@ -115,12 +113,12 @@ else:
     raise NotImplementedError
 
 set_seed(SEED + 1)
-dataset = load_data(n_v, n_h, N)
+dataset = load_artificial_data(n_v, n_h, N)
 loader = DataLoader(dataset, batch_size=1000, shuffle=True)
 
 true_W = dataset.true_W.type(DEFAULT_TYPE)
 y = torch.zeros(1, n).type(DEFAULT_TYPE)
-true_dist = marginal_rbm_bf(true_W, y)[0]
+true_dist = marginal_v_rbm_bf(true_W, y)[0]
 print('True:', true_dist)
 
 set_seed(SEED + 2)

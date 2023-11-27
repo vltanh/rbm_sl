@@ -5,7 +5,7 @@ from sklearn.metrics import pairwise_distances
 import numpy as np
 
 from constant import DEFAULT_TYPE
-from configurations import load_configurations
+from src.configurations import load_configurations
 
 
 def plot_histogram(samples, p):
