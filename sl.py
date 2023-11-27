@@ -6,7 +6,9 @@ from tqdm import tqdm
 from constant import DEFAULT_TYPE, ALGO
 
 from energy_based import energy_rbm
-from brute_force import barycenter_bf
+from brute_force import barycenter_bf, \
+    barycenter_conditional_v_rbm_bf, \
+    barycenter_conditional_h_rbm_bf
 from factor_graph import TreeRBMFactorGraph
 
 
@@ -71,6 +73,129 @@ def stochasic_localization_rbm(W, L, delta, B, store_history=True):
 
     # Generate samples
     samples = 2 * torch.bernoulli(p.clamp(0, 1)) - 1
+
+    # Return
+    if store_history:
+        return samples, history
+    return samples
+
+
+def sample_v_given_h_sl_rbm(W, y, h, L, delta, store_history=True):
+    '''
+    Stochastic localization for RBM
+
+    Args:
+        W: [n_h, n_v]
+        y: [B, n]
+        h: [B, n_h]
+        L: number of iterations
+        delta: step size
+        store_history: whether to store the history
+
+    Returns:
+        samples: [B, n]
+        history: [L + 1, B, n]
+    '''
+    n_h, n_v = W.shape
+    n = n_v + n_h
+    B = h.shape[0]
+
+    # Store the history
+    if store_history:
+        history = torch.empty((L + 1, B, n_v)).type(DEFAULT_TYPE)
+
+    # Initialize the tilting variable
+    # yhat = torch.zeros(B, n).type(DEFAULT_TYPE)
+    yhat = y.clone()
+
+    # Iterations
+    for l in tqdm(range(L), leave=False):
+        # Compute the barycenter
+        mhat = barycenter_conditional_h_rbm_bf(W, yhat, h)
+
+        # Store the history
+        if store_history:
+            history[l] = mhat
+
+        # Generate noise
+        w = torch.randn(B, n_v)
+
+        # Update the tilting variable
+        yhat[:, :n_v] += delta * mhat + np.sqrt(delta) * w
+
+    # Compute the barycenter
+    mhat = barycenter_conditional_h_rbm_bf(W, yhat, h)
+
+    # Store the history
+    if store_history:
+        history[L] = mhat
+
+    # Compute the marginal distribution
+    p = (1 + mhat) / 2
+
+    # Generate samples
+    samples = 2 * torch.bernoulli(p.clamp(0, 1)) - 1
+
+    # Return
+    if store_history:
+        return samples, history
+    return samples
+
+
+def sample_h_given_v_sl_rbm(W, y, v, L, delta, store_history=True):
+    '''
+    Stochastic localization for RBM
+
+    Args:
+        W: [n_h, n_v]
+        v: [B, n_v]
+        L: number of iterations
+        delta: step size
+        store_history: whether to store the history
+
+    Returns:
+        samples: [B, n]
+        history: [L+1, B, n]
+    '''
+    n_h, n_v = W.shape
+    n = n_v + n_h
+    B = v.shape[0]
+
+    # Store the history
+    if store_history:
+        history = torch.empty((L + 1, B, n_h)).type(DEFAULT_TYPE)
+
+    # Initialize the tilting variable
+    # yhat = torch.zeros(B, n).type(DEFAULT_TYPE)
+    yhat = y.clone()
+
+    # Iterations
+    for l in tqdm(range(L), leave=False):
+        # Compute the barycenter
+        mhat = barycenter_conditional_v_rbm_bf(W, yhat, v)
+
+        # Store the history
+        if store_history:
+            history[l] = mhat
+
+        # Generate noise
+        w = torch.randn(B, n_h)
+
+        # Update the tilting variable
+        yhat[:, n_v:] += delta * mhat + np.sqrt(delta) * w
+
+    # Compute the barycenter
+    mhat = barycenter_conditional_v_rbm_bf(W, yhat, v)
+
+    # Store the history
+    if store_history:
+        history[L] = mhat
+
+    # Compute the marginal distribution
+    p = (1 + mhat) / 2
+
+    # Generate samples
+    samples = 2 * p.clamp(0, 1).bernoulli() - 1
 
     # Return
     if store_history:
